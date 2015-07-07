@@ -6,6 +6,7 @@ test_birewire.bipartite()
 test_birewire.bipartite.incidence()
 test_birewire.bipartite.sparse()
 test_birewire.undirected ()
+test_birewire.dsg()
 }
 
 test_birewire.analysis <- function() 
@@ -41,7 +42,7 @@ g <- simplify(graph.bipartite( rep(0:1,length=100),
                                  seq(1,100,17),seq(1,100,19),seq(1,100,23),100
                                )))
  m<-as.matrix(get.incidence(graph=g))
- checkTrue(is.igraph( birewire.bipartite.from.incidence(m,T,F)))
+ checkTrue(is.igraph( birewire.bipartite.from.incidence(m,T)))
 }
 test_birewire.bipartite.sparse <- function(){
 g <- simplify(graph.bipartite( rep(0:1,length=100),
@@ -65,4 +66,6 @@ max=100*length(E(g))
 
 
 }
+
+
 
