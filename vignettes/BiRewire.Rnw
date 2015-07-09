@@ -47,8 +47,11 @@ Specifically, with \textit{BiRewire} users can:
 \item	generate rewired versions of a bipartite graph with the analytically derived bound as number of switching steps or a user-defined one; 
 \item	derive projections of the starting network and its rewired version and perform different graph-theory analysis on them;
 \item 	generate a set of netwoks correctly drawn from the suitable null-model starting from the initial BEM;
+<<<<<<< HEAD
 \item   monitoring the behaviour of the Markov chain underlying the SA
 \item 	perform the same analysis described in point 1,2,3,5 and 6 for undirected graphs.
+=======
+>>>>>>> 03f314fd4a098ed92e8d79badbacdf7f4ab95973
 \end{enumerate}
 
 All the functions of the package are written in C-code and R-wrapped.
