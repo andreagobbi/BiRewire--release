@@ -5,16 +5,16 @@
 \docType{package}
 \title{The BiRewire package}
 \description{
-   R package for computationally-efficient rewiring of bipartite graphs (or randomisation of 0-1 tables with prescribed marginal totals) and undirected. The package provides useful functions for the analysis and the randomisation of large biological datasets that can be encoded as 0-1 tables, hence modeled as bipartite graphs by considering a 0-1 table as an incidence matrix. Large collections of such randomised tables can be used to approximate null models, preserving event-rates both across rows and columns, for statistical significance tests of combinatorial properties of the original dataset. The package provides an interface to a sampler routine useful for generating correctly such collections. Moreover a visual monitoring for the Markov Chain underlying the swithicng algorithm has been implemented.
+   R package for computationally-efficient rewiring of bipartite graphs (or randomisation of 0-1 tables with prescribed marginal totals), undirected and directed signed graphs (dsg). The package provides useful functions for the analysis and the randomisation of large biological datasets that can be encoded as 0-1 tables, hence modeled as bipartite graphs by considering a 0-1 table as an incidence matrix, and for data that can be encoded as directed signed graphs such as patways and signaling networks. Large collections of such randomised tables can be used to approximate null models, preserving event-rates both across rows and columns, for statistical significance tests of combinatorial properties of the original dataset. The package provides an interface to a sampler routine useful for generating correctly such collections. Moreover a visual monitoring for the Markov Chain underlying the swithicng algorithm has been implemented.
 
    }
 \details{
 Summary:
   \tabular{ll}{
   Package: \tab BiRewire\cr
-  Version: \tab 2.2.3\cr
-  Date: 2015-07-07\cr
-  Require: slam, igraph,tsne,  R>=2.10\cr
+  Version: \tab 3.1.3\cr
+  Date: 2016-03-20\cr
+  Require: slam, igraph, tsne, Matrix,  R>=2.10\cr
   URL:  http://www.ebi.ac.uk/~iorio/BiRewire  \cr
   License: \tab GPL-3 \cr
   }
@@ -30,6 +30,8 @@ Andrea Gobbi [aut], Davide Albanese [cbt], Francesco Iorio [cbt], Giuseppe Jurma
 
 }
 \references{
+
+ Iorio, F. and Gobbi, A. (2016) \emph{In Preparation} In Preparation.\cr
 
 Gobbi, A. and  Iorio, F. and  Dawson, K. J. and Wedge, D. C. and Tamborero, D. and Alexandrov, L. B. and Lopez-Bigas, N. and  Garnett, M. J. and  Jurman, G. and  Saez-Rodriguez, J. (2014) \emph{Fast randomization of large genomic datasets while preserving alteration counts} Bioinformatics 2014 30 (17): i617-i623 doi: 10.1093/bioinformatics/btu474.\cr
 Jaccard, P. (1901), \emph{Étude comparative de la distribution florale dans une portion des Alpes et des Jura},

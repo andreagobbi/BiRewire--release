@@ -33,6 +33,9 @@ birewire.bipartite.from.incidence<-function(matrix,directed=FALSE)
 birewire.analysis.bipartite<- function(incidence, step=10, max.iter="n",accuracy=0.00005,verbose=TRUE,MAXITER_MUL=10,exact=FALSE,n.networks=50,display=TRUE)
 {
   
+	if(is.null(incidence))
+		return( list(N=0,data=NULL))
+
 	if(!is.matrix(incidence) && !is.data.frame(incidence))
 	{
 		stop("The input must be a data.frame or a matrix object \n")
@@ -118,7 +121,8 @@ birewire.analysis.bipartite<- function(incidence, step=10, max.iter="n",accuracy
 birewire.rewire.bipartite<- function(incidence,  max.iter="n", accuracy=0.00005,verbose=TRUE,MAXITER_MUL=10,exact=FALSE)
 {
   
-
+if(is.null(incidence))
+	return(NULL)
 if(!is.matrix(incidence) && !is.data.frame(incidence)  && !is.igraph(incidence))
 	{
     stop("The input must be a data.frame or a matrix object or an igraph bipartite graph \n")
@@ -368,7 +372,7 @@ birewire.analysis.undirected<- function(adjacency, step=10, max.iter="n",accurac
 			}else
 			{
 				if(max.iter=="n")
-			max.iter=(e/(2*d^3-6*d^2+2*d+2))*log(x=(1-d)/accuracy)
+			max.iter=ceiling((e/(2*d^3-6*d^2+2*d+2))*log(x=(1-d)/accuracy))
 	
 			}
 	for( i in 1:n.networks)
@@ -562,13 +566,13 @@ birewire.sampler.bipartite<-function(incidence,K,path,max.iter="n", accuracy=0.0
     					dir.create(path) 
  				 	}
 
-		n=ceiling(K/300)
+		
 		##NB 300 perche' non voglio piu' di 1000 file per cartella
 		NFILES=300
 		if(write.sparse==F)
 			NFILES=1000
 		NNET=NFILES
-
+		n=ceiling(K/NFILES)
 		for( i in 1:n)
 			{
 					if(K-NFILES*i<0)
@@ -629,12 +633,12 @@ birewire.sampler.undirected<-function(adjacency,K,path,max.iter="n", accuracy=0.
     					dir.create(path) 
  				 	}
 
-		n=ceiling(K/300)
 		##NB 300 perche' non voglio piu' di 1000 file per cartella
 		NFILES=300
 		if(write.sparse==F)
 			NFILES=1000
 		NNET=NFILES
+		n=ceiling(K/NFILES)
 
 		for( i in 1:n)
 			{
@@ -649,7 +653,7 @@ birewire.sampler.undirected<-function(adjacency,K,path,max.iter="n", accuracy=0.
     				}
     				for(j in 1:NNET)
     					{
-    						incidence=birewire.rewire.undirected(adjacency=adjacency,  max.iter=max.iter, accuracy=accuracy,verbose=verbose,MAXITER_MUL=MAXITER_MUL,exact=exact)
+    						adjacency=birewire.rewire.undirected(adjacency=adjacency,  max.iter=max.iter, accuracy=accuracy,verbose=verbose,MAXITER_MUL=MAXITER_MUL,exact=exact)
     						if(is.igraph(adjacency))
 								{
 									if(write.sparse)
@@ -800,3 +804,415 @@ return(list(dist=dist,tsne=tsne))
 
 
 
+
+
+
+
+
+
+
+
+
+##################DSG STUFF#############################
+birewire.sampler.dsg<-function(dsg,K,path,delimitators=list(negative='-',positive='+'),exact=FALSE,verbose=TRUE, max.iter.pos='n',max.iter.neg='n', accuracy=0.00005,MAXITER_MUL=10)
+	{
+
+  
+		if(!is.list(dsg)  )
+			    {
+			    	stop("The input must be a dsg object (see References) \n")
+			    	return(0)
+			    }
+
+		if(!file.exists(path))
+  					{
+    					dir.create(path) 
+ 				 	}
+
+		n=ceiling(K/1000)
+		NNET=1000
+		if(n==0)
+			n=1
+		for( i in 1:n)
+			{
+				if(K-1000*i<0)
+					NNET=K-1000*(i-1)			
+  
+			  	print(paste('Filling directory n.',i,'with',NNET,'randomised versions of the given dsg.'))
+    			PATH<-paste(path,'/',i,'/',sep='')
+				if(!file.exists(PATH))
+					{
+      					dir.create(PATH)
+    				}
+    				for(j in 1:NNET)
+    					{
+    						dsg=birewire.rewire.dsg(dsg=dsg,delimitators=delimitators,exact=exact,path=paste(PATH,'network_',(i-1)*1000+j,'.sif',sep=''),
+    							verbose=verbose,max.iter.pos=max.iter.pos,max.iter.neg=max.iter.neg, accuracy=accuracy,MAXITER_MUL=MAXITER_MUL)
+
+    					}	
+
+			}
+
+
+
+
+
+	}
+
+birewire.rewire.dsg<-function(dsg,exact=FALSE,verbose=1,max.iter.pos='n',max.iter.neg='n',accuracy=0.00005,MAXITER_MUL=10,path=NULL,delimitators=list(positive='+',negative= '-'))
+{
+
+
+		if(!is.list(dsg) )
+			    {
+			    	stop("The input must be a dsg object (see References) \n")
+			    	return(0)
+			    }
+
+
+	incidence_pos=dsg[["positive"]]
+	incidence_neg=dsg[["negative"]]
+	incidence_pos=birewire.rewire.bipartite(incidence=incidence_pos,  max.iter=max.iter.pos, accuracy=accuracy,verbose=verbose,MAXITER_MUL=MAXITER_MUL,exact=exact)
+    incidence_neg=birewire.rewire.bipartite(incidence=incidence_neg,  max.iter=max.iter.neg, accuracy=accuracy,verbose=verbose,MAXITER_MUL=MAXITER_MUL,exact=exact)
+	dsg=list(positive=incidence_pos,negative=incidence_neg)	
+	if(!is.null(path))
+		{
+
+			birewire.save.dsg(g=birewire.build.dsg(dsg,delimitators),file=path)
+				
+		}
+	return(dsg)
+}
+
+
+##INTERNAL ROUTINES
+simplify.table<-function(df)
+	{
+		return(df[which(rowSums(df)>0),which(colSums(df)>0)])
+
+	}
+##INTERNAL ROUTINES
+get.data.frame.from.incidence<-function(table,sign)
+{
+if(is.null(table))
+	return(NULL)
+
+source=rownames(table)
+target=colnames(table)
+index=which(table>0,arr.ind=TRUE)
+df=data.frame(source=source[index[,1]],sign=sign,target=target[index[,2]])
+return(df)
+
+}
+
+##from a sif file, the routine generates the negative and positive incidence matrix
+birewire.induced.bipartite<-function(g,delimitators=list(negative='-',positive='+'),sparse=FALSE)
+{
+	if(is.null(delimitators[['positive']]) | is.null(delimitators[['negative']]) )
+			    {
+			    	stop("Problem with delimitators (see References) \n")
+			    	return(0)
+			    }
+
+
+	g=as.data.frame(g)
+	dsg=list()
+	g_p=g[g[,2]==delimitators[['positive']],c(1,3)]
+	g_n=g[g[,2]==delimitators[['negative']],c(1,3)]
+	if(!sparse)
+	{
+		positive=as.data.frame.matrix(table(g_p))
+		negative=as.data.frame.matrix(table(g_n))
+		dsg[['positive']]=simplify.table(positive)
+		dsg[['negative']]=simplify.table(negative)
+	}else
+	{
+			g_p[,2]=paste(g_p[,2],"@@t",sep='')
+			g_n[,2]=paste(g_n[,2],"@@t",sep='')
+			dsg[['positive']]=graph.edgelist(as.matrix(g_p),directed=TRUE)
+			dsg[['negative']]=graph.edgelist(as.matrix(g_n),directed=TRUE)
+			V(dsg[['positive']])$type=0
+			V(dsg[['positive']])$type[which(unlist(lapply(strsplit(V(dsg[['positive']])$name,"@@"),length))==2)]=1
+			V(dsg[['negative']])$type=0
+			V(dsg[['negative']])$type[which(unlist(lapply(strsplit(V(dsg[['negative']])$name,"@@"),length))==2)]=1
+			
+
+	}
+return(dsg)
+
+}	
+
+
+##inverse of the function above
+birewire.build.dsg<-function(dsg,delimitators=list(negative='-',positive='+'))
+{
+
+
+	if(!is.list(dsg))
+			    {
+			    	stop("The input must be a dsg object (see References) \n")
+			    	return(0)
+			    }
+	positive=dsg[['positive']]
+	negative=dsg[['negative']]
+	if(!is.igraph(positive))
+	{
+		g_p=get.data.frame.from.incidence(positive,delimitators[['positive']])
+		g_n=get.data.frame.from.incidence(negative,delimitators[['negative']])
+		
+		}else
+		{
+			V(positive)$name=unlist(lapply(strsplit(V(positive)$name,"@@"),function(x){return(x[1])}))
+			g_n=NULL
+			if(!is.null(negative))
+				{
+					V(negative)$name=unlist(lapply(strsplit(V(negative)$name,"@@"),function(x){return(x[1])}))
+					g_n=get.edgelist(negative,names=TRUE)
+					g_n=cbind(g_n,delimitators[['negative']])
+					g_n=g_n[,c(1,3,2)]
+				}
+			g_p=get.edgelist(positive,names=TRUE)
+			g_p=cbind(g_p,delimitators[['positive']])
+			g_p=g_p[,c(1,3,2)]
+
+		
+		}
+	g=rbind(g_p,g_n)
+	return(g)
+}
+
+birewire.load.dsg<-function(path)
+	{
+		
+
+		return(unique(read.table(path,stringsAsFactors=F)))
+
+
+	}
+birewire.save.dsg<-function(g,file)
+	{
+
+		
+		write.table(g,file,col.names=FALSE,row.names=FALSE,quote=FALSE)
+
+		
+
+
+	}
+
+##jaccard index for dsg
+	birewire.similarity.dsg<-function(m1,m2)
+{
+
+
+if(is.igraph(m1[["positive"]]))
+	{
+		e.p=length(E(m1[["positive"]]))
+		x.p=length(E(graph.intersection(as.undirected(m1[["positive"]]),as.undirected(m2[["positive"]]))))
+		e.n=0
+		x.n=0
+		if(!is.null(m1[["negative"]]))
+			{
+				e.n=length(E(m1[["negative"]]))
+			 	x.n=length(E(graph.intersection(as.undirected(m1[["negative"]]),as.undirected(m2[["negative"]]))))
+			 }
+		return((x.p+x.n)/(2*e.p+2*e.n-x.p-x.n))
+	}else
+	{
+		x=sum(m1[['positive']]*m2[['positive']]) +sum(m1[['negative']]*m2[['negative']] )
+		e=sum(m1[['positive']])+sum(m1[['negative']])
+  		return( x/(2*e-x))
+
+	}
+  
+}
+
+
+birewire.analysis.dsg<-function(dsg, step=10, max.iter.pos='n',max.iter.neg='n',accuracy=0.00005,verbose=TRUE,MAXITER_MUL=10,exact=FALSE,n.networks=50,display=TRUE)
+{
+  
+		if(!is.list(dsg) )
+			    {
+			    	stop("The input must be a dsg object (see References) \n")
+			    	return(0)
+			    }
+
+	incidence_pos=dsg[["positive"]]
+	incidence_neg=dsg[["negative"]]
+	incidence_pos=birewire.analysis.bipartite(incidence=incidence_pos,  max.iter=max.iter.pos, accuracy=accuracy,verbose=verbose,MAXITER_MUL=MAXITER_MUL,exact=exact,n.networks=n.networks,display=FALSE,step=step)
+    incidence_neg=birewire.analysis.bipartite(incidence=incidence_neg,  max.iter=max.iter.neg, accuracy=accuracy,verbose=verbose,MAXITER_MUL=MAXITER_MUL,exact=exact,n.networks=n.networks,display=FALSE,step=step)
+	
+
+    if(!is.null(incidence_pos$data) & !is.null(incidence_neg$data))
+    {
+	if(ncol(incidence_pos$data)<ncol(incidence_neg$data))
+			{
+				mag=incidence_neg
+				min=incidence_pos
+				mag_is_pos="negative"
+				min_is_pos="positive"
+
+				}else
+					{
+						mag=incidence_pos
+						min=incidence_neg
+						mag_is_pos="positive"
+						min_is_pos="negative"
+					}
+					}else
+					{
+						if(is.null(incidence_pos$data))
+							 {
+								mag=incidence_neg
+								min=incidence_pos
+								mag_is_pos="negative"
+								min_is_pos="positive"
+
+							 }else
+							 {
+							 	mag=incidence_pos
+								min=incidence_neg
+								mag_is_pos="positive"
+								min_is_pos="negative"
+							 }
+
+
+					}
+	if(display)
+	{
+		try(dev.off())
+		#mean=colMeans(mag$data)
+		#std=apply(mag$data,2,sd)
+		#sup=mean+ qt(.975,nrow(mag$data)-1)*std/sqrt(nrow(mag$data))
+		#inf=mean- qt(.975,nrow(mag$data)-1)*std/sqrt(nrow(mag$data))
+		#par(mfrow=c(2,1))
+		#x=seq(1,length.out=length(mean))
+		#plot(step*x,mean,type= 'n',col='blue',lwd=2,main="Jaccard index (JI) over time",xlab="Switching steps",ylab='Jaccard Index',ylim=c(min(mag$data,min$data),max(mag$data,min$data) ))
+		#polygon(c(rev(step*x),step*x),c(rev(sup),inf), col = 'grey80', border = NA)
+		#lines(step*x,mean,col='blue',lwd=2)
+		#mean=colMeans(min$data)
+		#std=apply(min$data,2,sd)
+		#sup=mean+ qt(.975,nrow(min$data)-1)*std/sqrt(nrow(min$data))
+		##inf=mean- qt(.975,nrow(min$data)-1)*std/sqrt(nrow(min$data))
+		#x=seq(1,length.out=length(mean))
+		#polygon(c(rev(step*x),step*x),c(rev(sup),inf), col = 'grey60', border = NA)
+		#lines(step*x,mean,col='green',lwd=2)
+		#abline(v=mag$N,col= 'red')
+		#abline(v=min$N,col= 'black')
+		#legend("topright",ncol=2,cex=0.8,
+		#		col=c('blue','grey80','green','grey60','red','black'),
+		#		lwd=c(2,10,2,10,1,1),
+		#		legend=c( paste("Mean JI",mag_is_pos), paste("C.I.",mag_is_pos),
+		#				  paste("Mean JI",min_is_pos), paste("C.I.",min_is_pos)
+		#			,paste("Bound",mag_is_pos), paste("Bound",min_is_pos)))
+
+
+
+
+		mean=colMeans(mag$data)
+		std=apply(mag$data,2,sd)
+		sup=mean+ qt(.975,nrow(mag$data)-1)*std/sqrt(nrow(mag$data))
+		inf=mean- qt(.975,nrow(mag$data)-1)*std/sqrt(nrow(mag$data))
+		x=seq(1,length.out=length(mean))
+		plot(step*x,mean,type= 'n',col='blue',lwd=2,main="Jaccard index (JI) over time (log-log scale)",log='xy',xlab="Switching steps",ylab='Jaccard Index',ylim=c(min(mag$data[mag$data>0],min$data[min$data>0]),max(mag$data,min$data) ))
+		polygon(c(rev(step*x),step*x),c(rev(sup),inf), col = 'grey80', border = NA)
+		lines(step*x,mean,col='blue',lwd=2)
+		if(!is.null(min$data))
+		{
+		mean=colMeans(min$data)
+		std=apply(min$data,2,sd)
+		sup=mean+ qt(.975,nrow(min$data)-1)*std/sqrt(nrow(min$data))
+		inf=mean- qt(.975,nrow(min$data)-1)*std/sqrt(nrow(min$data))
+		x=seq(1,length.out=length(mean))
+		polygon(c(rev(step*x),step*x),c(rev(sup),inf), col = 'grey60', border = NA)
+		lines(step*x,mean,col='green',lwd=2)
+		abline(v=mag$N,col= 'red')
+		abline(v=min$N,col= 'black')
+		legend("bottomleft",ncol=2,cex=0.8,
+				col=c('blue','grey80','green','grey60','red','black'),
+				lwd=c(2,10,2,10,1,1),
+				legend=c( paste("Mean JI",mag_is_pos), paste("C.I.",mag_is_pos),
+						  paste("Mean JI",min_is_pos), paste("C.I.",min_is_pos)
+					,paste("Bound",mag_is_pos), paste("Bound",min_is_pos)))
+		}else
+		{
+			abline(v=mag$N,col= 'red')
+		legend("bottomleft",ncol=2,cex=0.8,
+				col=c('blue','grey80','black'),
+				lwd=c(2,10,2,10,1,1),
+				legend=c( paste("Mean JI",mag_is_pos), paste("C.I.",mag_is_pos),
+					paste("Bound",mag_is_pos)))
+		}
+		
+
+	}
+	return( list(N=list(positive=incidence_pos$N,negative=incidence_neg$N),data=list(positive=incidence_pos$data,negative=incidence_neg$data)))
+}
+
+
+birewire.visual.monitoring.dsg<-function(data,accuracy=0.00005,verbose=FALSE,MAXITER_MUL=10,exact=FALSE,n.networks=100,perplexity=15,
+	sequence.pos=c(1,5,100,"n"),
+	sequence.neg=c(1,5,100,"n"),ncol=2,nrow=length(sequence.pos)/ncol,display=TRUE)
+{
+if(length(sequence.pos)!=length(sequence.neg))
+{
+	stop("The two sequence to test must have the same length \n")
+
+}
+
+if(display)
+{
+	par(mfrow=c(nrow,ncol))
+	par(pty="s")
+}
+dist=list()
+tsne=list()
+ii=1
+
+for( i in 1:length(sequence.pos))
+{
+	print(paste("K.pos=",sequence.pos[i],", K.neg=", sequence.neg[i]))
+	data_tmp=data
+	tot=list(data)
+	m=matrix(nrow=n.networks,ncol=n.networks,0)
+	for(j in 2:n.networks)
+		{
+			data_tmp=birewire.rewire.dsg(data_tmp,  max.iter.pos=sequence.pos[i],max.iter.neg=sequence.neg[i], accuracy=accuracy,verbose=verbose,MAXITER_MUL=MAXITER_MUL,exact=exact)
+			tot[[j]]=data_tmp
+			for(k in 1:(j-1))
+				m[k,j]=m[j,k]=1-birewire.similarity.dsg(tot[[k]],tot[[j]])
+				
+
+		}
+	dist[[ii]]=m	
+	tmp=try(tsne(m,whiten=F,perplexity=perplexity))
+	if(!is.double(tmp))
+		return(list(dist=list(),tsne=list()))
+	tsne[[ii]]=tmp
+	#tsne[[ii]]=cmdscale(m,eig=TRUE, k=2)$points
+	if(display)
+		{
+			plot(tsne[[ii]],col=colorRampPalette(c("blue", "red"))( n.networks),pch=16,xlab='A.U.',ylab='A.U.',main=paste("K.pos=",sequence.pos[i],", K.neg=", sequence.neg[i]))
+			text(x=tsne[[ii]][1,1],y=tsne[[ii]][1,2],label='start')
+		}	
+	ii=ii+1
+
+
+}
+
+return(list(dist=dist,tsne=tsne))
+
+
+
+}
+
+birewire.slum.to.sparseMatrix<-function(simple_triplet_matrix_sparse) {
+  retval <-  sparseMatrix(i=as.numeric(simple_triplet_matrix_sparse$i),
+                          j=as.numeric(simple_triplet_matrix_sparse$j),
+                          x=as.numeric(as.character(simple_triplet_matrix_sparse$v)),
+                          dims=c(simple_triplet_matrix_sparse$nrow, 
+                                 simple_triplet_matrix_sparse$ncol),
+                          dimnames = dimnames(simple_triplet_matrix_sparse),
+                          giveCsparse = TRUE)
+  return(retval)
+}
